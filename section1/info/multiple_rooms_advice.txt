@@ -1,0 +1,42 @@
+As a total beginner myself I found the following things helpful (mostly because that was what I had to change when I invaded the first room):
+
+Avoid using anything like Game.controllers.MyController, instead loop over the rooms like:
+
+for(var room_it in Game.rooms) {
+    var room = Game.rooms[room_it]
+    var spawn = room.find(FIND_MY_SPAWNS)[0]; // TODO: decide on multi spawn rooms
+This is the start of the loop that decides if any creeps need to be spawned. The following code will make decisions mostly based on number of creeps in this room (which I count in a different loop) and room params like energy available. Also there is a global object create where I hard code some tasks for each room that I can't calculate automatically (yet anyway, maybe when my code gets better).
+
+room_strategy : {
+  'W5S7': {
+    maintenance_area: {ax: 11, ay: 5, bx: 46, by: 30},
+    min_wall: 300000,
+},
+'W4S7': {
+  maintenance_area: {ax: 0, ay: 0, bx: 49, by: 49},
+  min_wall: 75000,
+}
+Maintenance area is the area in which the creeps should upgrade walls (a bit specific to my rooms) and min_wall is the level to which they should upgrade (My older room with better walls is at a higher level). That prevents that creeps upgrade one wall to a super high value before going on with the next wall. That way I just adjust the level once a day. There are more such values in this data structure.
+
+The creeps themselves are just looped like this:
+
+for(var name in Game.creeps) {
+Game.creeps[name].runTask();
+}
+
+runTask() is a method I added to the Creeps.prototype.
+
+They will then take their current room object and make all decisions based on that (eg instead of moving energy to Game.spawns.MyFirstSpawn they will use
+
+creep.room.find(FIND_MY_SPAWNS)[0]
+Since by now I have only one spawn in my rooms (and all my rooms have a single energy source) that works good enough. There is no code duplication at all. Just make sure when you calculate any task targets based on the creeps position and room. I use something like
+
+creep.pos.findClosest(FIND_STRUCTURES... 
+a lot. Finding targets to get or drop energy for haulers, finding construction sites for builder or whatever, just use those room/position based finders and your code will run the same in all rooms.
+
+The only type of creep that needs special attention are those that move from one room to the next. Especially in the beginning I found it very helpful to have a permanent stream of creeps moving from room 1 to room 2 and helping with harvesting energy, since without extensions you can only build very small creep that do not fully harvest energy fast enough.
+
+They start with the second room as target hardcoded and will then move to the exit. Once they reach the exit and are in the next room I just switch the 'role' and 'task' stored in their memory. Then they are simple harvesters and their task assignment code will use above finders to search for the rooms energy source like any other harvester.
+
+http://support.screeps.com/hc/en-us/community/posts/201379672-How-i-can-control-second-room-
+https://screeps.com/a/#!/profile/Jabberwocky
